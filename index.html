@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚡ NEON GRID — Nonogram Puzzle</title>
+  <link rel="icon" type="image/x-icon" href="openart-image_1773748598106_cc132c47_1773748598286_9b72c226.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ─── MAIN CONTENT ────────────────────────────────────────────────────────── -->
+<div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:100%;">
+  <h1>⚡ NEON GRID</h1>
+  <p class="sub">NONOGRAM PUZZLE</p>
+  <div id="modeDisplay"></div>
+  <div id="arcadeProgressDisplay" class="arcade-progress" style="display:none;"></div>
+
+  <div class="wrap">
+
+    <!-- LEFT: Game Panel -->
+    <div class="panel panel-c" id="gamePanel">
+
+      <!-- Classic Controls -->
+      <div id="classicControls">
+        <div style="text-align:center;color:var(--m);font-size:.72rem;font-weight:bold;letter-spacing:2px;margin-bottom:6px;">GRID SIZE</div>
+        <div class="size-row">
+          <button class="sz-btn on" data-s="5"  onclick="changeSize(5)">5×5</button>
+          <button class="sz-btn"    data-s="10" onclick="changeSize(10)">10×10</button>
+          <button class="sz-btn"    data-s="15" onclick="changeSize(15)">15×15</button>
+        </div>
+        <div style="text-align:center;color:var(--m);font-size:.72rem;font-weight:bold;letter-spacing:2px;margin-bottom:6px;">DIFFICULTY</div>
+        <div class="diff-row">
+          <button class="df-btn on" data-d="easy"   onclick="changeDiff('easy')">EASY</button>
+          <button class="df-btn"    data-d="medium" onclick="changeDiff('medium')">MEDIUM</button>
+          <button class="df-btn"    data-d="hard"   onclick="changeDiff('hard')">HARD</button>
+        </div>
+      </div>
+
+      <!-- Arcade Controls -->
+      <div id="arcadeControls" style="display:none;text-align:center;margin-bottom:10px;">
+        <div style="color:var(--m);font-size:.72rem;font-weight:bold;letter-spacing:2px;margin-bottom:4px;">ARCADE LEVEL</div>
+        <div style="color:var(--c);font-size:1rem;font-weight:bold;" id="arcadeLevelName">—</div>
+      </div>
+
+      <!-- Nonogram -->
+      <div class="ngram">
+        <div id="rowClues"></div>
+        <div id="colClues"></div>
+        <div id="grid"></div>
+      </div>
+
+      <div class="clue-check" id="clueCheck"></div>
+    </div>
+
+    <!-- RIGHT: Stats Panel -->
+    <div class="panel panel-m" style="min-width:230px;max-width:275px;width:100%;">
+      <div style="color:var(--m);font-size:.85rem;font-weight:bold;letter-spacing:2px;margin-bottom:12px;">📊 STATS</div>
+
+      <div class="stat"><span class="sl">TIME</span><span class="sv" id="tstat">00:00</span></div>
+      <div class="stat"><span class="sl">MISTAKES</span><span class="sv" id="mstat">0/3</span></div>
+
+      <div style="color:var(--muted);font-size:.72rem;letter-spacing:1px;margin-bottom:4px;">PROGRESS</div>
+      <div class="prog-wrap"><div class="prog" id="prog"></div></div>
+
+      <div class="btns">
+        <button class="btn" id="hintBtn" onclick="doHint()">
+          💡 HINT <span class="hint-count" id="hintCount">3</span>
+        </button>
+        <button class="btn" onclick="doUndo()">↩ UNDO</button>
+        <button class="btn" onclick="resetGame()">🔄 RESET</button>
+        <button class="btn btn-m" id="newPuzzleBtn" onclick="handleNewBtn()">→ NEW PUZZLE</button>
+        <button class="btn btn-ghost" onclick="goToMenu()">☰ MENU</button>
+      </div>
+
+      <!-- Classic Leaderboard -->
+      <div style="margin-top:16px;" id="classicLBSection">
+        <div class="lb-title">🏆 LEADERBOARD</div>
+        <div id="lb"></div>
+      </div>
+
+      <!-- Arcade Leaderboard (shown in arcade mode) -->
+      <div style="margin-top:16px;display:none;" id="arcadeLBSection">
+        <div class="lb-title" style="color:var(--c);">🎮 ARCADE BEST</div>
+        <div id="arcadeLB"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── LEVEL FLASH ──────────────────────────────────────────────────────────── -->
+<div class="level-flash" id="levelFlash"></div>
+
+<!-- ─── UNDO TOAST ───────────────────────────────────────────────────────────── -->
+<div class="undo-toast" id="undoToast">↩ Undone</div>
+
+<!-- ─── MAIN MENU ────────────────────────────────────────────────────────────── -->
+<div class="modal on" id="mainMenu">
+  <div class="mc">
+    <h2>⚡ NEON GRID</h2>
+    <img src="openart-image_1773748598106_cc132c47_1773748598286_9b72c226.png" alt="NEON GRID Logo" class="logo">
+    <div class="logo-sub">NONOGRAM PUZZLE</div>
+    <button class="btn"     onclick="startClassic()">🧩 CLASSIC MODE</button>
+    <button class="btn btn-m" onclick="startArcade()">🎮 ARCADE MODE</button>
+    <button class="btn btn-g" onclick="openSettings()">⚙ SETTINGS</button>
+  </div>
+</div>
+
+<!-- ─── SETTINGS ─────────────────────────────────────────────────────────────── -->
+<div class="modal" id="settingsMenu">
+  <div class="mc">
+    <h2>⚙ SETTINGS</h2>
+    <div style="margin:18px 0 6px;text-align:left;">
+      <div class="vol-row">
+        <span class="vol-label">🎵 MUSIC</span>
+        <input type="range" min="0" max="1" step="0.01" id="musicVol" value="0.5" oninput="setMusicVol(this.value)">
+        <span class="vol-val" id="musicVolVal">50%</span>
+      </div>
+      <div class="vol-row">
+        <span class="vol-label">🔊 SFX</span>
+        <input type="range" min="0" max="1" step="0.01" id="sfxVol" value="0.5" oninput="setSfxVol(this.value)">
+        <span class="vol-val" id="sfxVolVal">50%</span>
+      </div>
+    </div>
+    <p style="font-size:.7rem;color:var(--muted);margin-top:4px;">
+      Set audio file paths in game.js under the AUDIO object.
+    </p>
+    <button class="btn" onclick="closeSettings()" style="margin-top:12px;">← BACK</button>
+  </div>
+</div>
+
+<!-- ─── CLASSIC WIN MODAL ─────────────────────────────────────────────────────── -->
+<div class="modal" id="winModal">
+  <div class="mc">
+    <h2>🎉 VICTORY!</h2>
+    <p id="winMsg"></p>
+    <input type="text" id="pname" placeholder="Enter your name..." maxlength="20">
+    <button class="btn"       onclick="saveScore()">SAVE TO LEADERBOARD</button>
+    <button class="btn btn-m" onclick="newGame()">→ NEW PUZZLE</button>
+    <button class="btn btn-ghost" onclick="goToMenu()">☰ MENU</button>
+  </div>
+</div>
+
+<!-- ─── ARCADE COMPLETE MODAL ─────────────────────────────────────────────────── -->
+<div class="modal" id="arcadeCompleteModal">
+  <div class="mc">
+    <h2>🏆 ARCADE COMPLETE!</h2>
+    <p>You solved all arcade levels!</p>
+    <p id="arcadeCompleteStats" style="color:var(--c);font-weight:bold;margin-bottom:10px;"></p>
+
+    <input type="text" id="arcadeNameInput" placeholder="Enter your name..." maxlength="20">
+    <button class="btn btn-g" onclick="saveArcadeScore()">SAVE TO ARCADE LEADERBOARD</button>
+
+    <div style="margin-top:16px;">
+      <div class="lb-title" style="color:var(--c);">🎮 ARCADE BEST TIMES</div>
+      <div id="arcadeCompleteLeaderboard"></div>
+    </div>
+
+    <button class="btn btn-m" onclick="startArcade()" style="margin-top:12px;">PLAY AGAIN</button>
+    <button class="btn btn-ghost" onclick="goToMenu()">☰ MENU</button>
+  </div>
+</div>
+
+<!-- ─── GAME OVER MODAL ───────────────────────────────────────────────────────── -->
+<div class="modal" id="loseModal">
+  <div class="mc">
+    <h2>💥 GAME OVER</h2>
+    <p>Too many mistakes!</p>
+    <button class="btn"       onclick="resetGame()">TRY AGAIN</button>
+    <button class="btn btn-m" onclick="handleNewBtn()">→ NEW PUZZLE</button>
+    <button class="btn btn-ghost" onclick="goToMenu()">☰ MENU</button>
+  </div>
+</div>
+
+<!-- ─── SCRIPT ────────────────────────────────────────────────────────────────── -->
+<script src="game.js"></script>
+
+<!-- Show arcade LB in sidebar when in arcade mode -->
+<script>
+  const _origStartArcade = startArcade;
+  startArcade = function() {
+    _origStartArcade();
+    document.getElementById('classicLBSection').style.display = 'none';
+    document.getElementById('arcadeLBSection').style.display = '';
+    updateArcadeLB();
+  };
+
+  const _origStartClassic = startClassic;
+  startClassic = function() {
+    _origStartClassic();
+    document.getElementById('classicLBSection').style.display = '';
+    document.getElementById('arcadeLBSection').style.display = 'none';
+  };
+
+  const _origGoToMenu = goToMenu;
+  goToMenu = function() {
+    _origGoToMenu();
+    document.getElementById('classicLBSection').style.display = '';
+    document.getElementById('arcadeLBSection').style.display = 'none';
+  };
+
+  // Also populate the arcade leaderboard inside the complete modal
+  const _origSaveArcadeScore = saveArcadeScore;
+  saveArcadeScore = function() {
+    _origSaveArcadeScore();
+    // re-populate inline lb after save
+    let lb = [];
+    try { lb = JSON.parse(localStorage.getItem('ng_arcade_lb') || '[]'); } catch(e) {}
+    const el = document.getElementById('arcadeCompleteLeaderboard');
+    if (el) el.innerHTML = lb.slice(0,8).map((e,i) =>
+      `<div class="alb-entry"><span class="alb-r">#${i+1}</span><span class="alb-n">${e.n}</span><span class="alb-t">${fmt(e.t)}</span><span class="alb-lv">${e.m} err</span></div>`
+    ).join('') || '<div style="color:var(--muted);text-align:center;font-size:.75rem;padding:8px;">No results yet</div>';
+  };
+
+  // Populate arcade lb inside modal on open
+  const observer = new MutationObserver(() => {
+    if (document.getElementById('arcadeCompleteModal').classList.contains('on')) {
+      let lb = [];
+      try { lb = JSON.parse(localStorage.getItem('ng_arcade_lb') || '[]'); } catch(e) {}
+      const el = document.getElementById('arcadeCompleteLeaderboard');
+      if (el) el.innerHTML = lb.slice(0,8).map((e,i) =>
+        `<div class="alb-entry"><span class="alb-r">#${i+1}</span><span class="alb-n">${e.n}</span><span class="alb-t">${fmt(e.t)}</span><span class="alb-lv">${e.m} err</span></div>`
+      ).join('') || '<div style="color:var(--muted);text-align:center;font-size:.75rem;padding:8px;">No results yet</div>';
+    }
+  });
+  observer.observe(document.getElementById('arcadeCompleteModal'), { attributes: true, attributeFilter: ['class'] });
+</script>
+
+</body>
+</html>
