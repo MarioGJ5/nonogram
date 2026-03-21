@@ -417,7 +417,23 @@ h1 {
 .lb-r { color: var(--c); font-weight: bold; min-width: 22px; }
 .lb-n { color: var(--m); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lb-t { color: var(--c); }
+/* ─── SELECT DROPDOWNS ──────────────────────────────────────────────────────── */
+select {
+  background: rgba(0,240,255,.1);
+  border: 1px solid var(--c);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: .75rem;
+  cursor: pointer;
+  transition: all .2s;
+}
 
+select:hover { border-color: var(--m); }
+select:focus { outline: none; border-color: var(--m); }
+
+select option { background: var(--bg2); color: var(--text); }
 /* ─── MODALS ────────────────────────────────────────────────────────────────── */
 .modal {
   display: none;
