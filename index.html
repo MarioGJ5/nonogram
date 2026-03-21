@@ -76,6 +76,18 @@
       <!-- Classic Leaderboard -->
       <div style="margin-top:16px;" id="classicLBSection">
         <div class="lb-title">🏆 LEADERBOARD</div>
+        <div style="display:flex; justify-content:space-between; gap:8px; margin-bottom:8px;">
+          <select id="lbSize" onchange="setLeaderboardFilter(parseInt(this.value), leaderboardFilter.diff)">
+            <option value="5">5×5</option>
+            <option value="10">10×10</option>
+            <option value="15">15×15</option>
+          </select>
+          <select id="lbDiff" onchange="setLeaderboardFilter(leaderboardFilter.size, this.value)">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
         <div id="lb"></div>
       </div>
 
@@ -104,6 +116,21 @@
     <button class="btn"     onclick="startClassic()">🧩 CLASSIC MODE</button>
     <button class="btn btn-m" onclick="startArcade()">🎮 ARCADE MODE</button>
     <button class="btn btn-g" onclick="openSettings()">⚙ SETTINGS</button>
+    <button class="btn btn-ghost" onclick="openHowToPlay()">❓ HOW TO PLAY</button>
+  </div>
+</div>
+
+<!-- ─── HOW TO PLAY ─────────────────────────────────────────────────────────── -->
+<div class="modal" id="howToPlayMenu">
+  <div class="mc">
+    <h2>❓ HOW TO PLAY</h2>
+    <p><strong>🎮 OBJECTIVE:</strong> Fill in the grid according to the number clues on each row and column.</p>
+    <p><strong>🎯 CLUES:</strong> Numbers indicate consecutive filled cells. Multiple numbers mean groups separated by gaps.</p>
+    <p><strong>✅ LEFT CLICK:</strong> Fill a cell (white)</p>
+    <p><strong>💡 HINTS:</strong> Reveals one correct cell. Limited per puzzle.</p>
+    <p><strong>↩ UNDO:</strong> Revert your last move.</p>
+    <p><strong>🎮 ARCADE MODE:</strong> Solve all levels in sequence. Your time and mistakes are tracked.</p>
+    <button class="btn btn-ghost" onclick="closeHowToPlay()" style="margin-top:12px;">← BACK</button>
   </div>
 </div>
 
@@ -114,8 +141,8 @@
     <div style="margin:18px 0 6px;text-align:left;">
       <div class="vol-row">
         <span class="vol-label">🎵 MUSIC</span>
-        <input type="range" min="0" max="1" step="0.01" id="musicVol" value="0.5" oninput="setMusicVol(this.value)">
-        <span class="vol-val" id="musicVolVal">50%</span>
+        <input type="range" min="0" max="1" step="0.01" id="musicVol" value="0.4" oninput="setMusicVol(this.value)">
+        <span class="vol-val" id="musicVolVal">40%</span>
       </div>
       <div class="vol-row">
         <span class="vol-label">🔊 SFX</span>
@@ -123,9 +150,6 @@
         <span class="vol-val" id="sfxVolVal">50%</span>
       </div>
     </div>
-    <p style="font-size:.7rem;color:var(--muted);margin-top:4px;">
-      Set audio file paths in game.js under the AUDIO object.
-    </p>
     <button class="btn" onclick="closeSettings()" style="margin-top:12px;">← BACK</button>
   </div>
 </div>
@@ -161,6 +185,11 @@
     <button class="btn btn-ghost" onclick="goToMenu()">☰ MENU</button>
   </div>
 </div>
+
+<footer>
+    <p>&copy; 2026 Mario Đonaj. All rights reserved.</p>
+</footer>
+
 
 <!-- ─── GAME OVER MODAL ───────────────────────────────────────────────────────── -->
 <div class="modal" id="loseModal">
