@@ -4,6 +4,11 @@ let arcadeIndex = 0;
 let arcadeTotalTime = 0;
 let arcadeTotalMistakes = 0;
 
+// Saved game state for resume
+let savedGameState = null;
+let savedMode = null;
+let savedTimer = null;
+
 const G = {
   size: 5,
   diff: 'easy',
@@ -21,6 +26,11 @@ const G = {
   dragMode: null
 };
 
+let leaderboardFilter = {
+  size: 5,
+  diff: 'easy'
+};
+
 // ─── AUDIO SYSTEM ─────────────────────────────────────────────────────────────
 const AUDIO = {
   music:   new Audio(),
@@ -31,17 +41,17 @@ const AUDIO = {
   hint:    new Audio()
 };
 
-let musicVolume = 0.5;
+let musicVolume = 0.4;
 let sfxVolume   = 0.5;
 
 // To plug in your sounds, set src like:
-//   AUDIO.music.src   = 'sounds/menu.mp3';
-//   AUDIO.click.src   = 'sounds/click.mp3';
-//   AUDIO.correct.src = 'sounds/correct.mp3';
-//   AUDIO.wrong.src   = 'sounds/wrong.mp3';
-//   AUDIO.win.src     = 'sounds/win.mp3';
-//   AUDIO.hint.src    = 'sounds/hint.mp3';
-AUDIO.music.loop = true;
+  AUDIO.music.src   = encodeURIComponent('Main_Menu_Idle_Theme_#4-1773757151639.mp3');
+  AUDIO.click.src   = encodeURIComponent('universfield-computer-mouse-click-02-383961.mp3');
+  AUDIO.correct.src = encodeURIComponent('freesound_community-rightanswer-95219.mp3');
+  AUDIO.wrong.src   = encodeURIComponent('Game_Over_Stinger_da_#3-1773755523418.mp3');
+  AUDIO.win.src     = encodeURIComponent('Victory_Win_Jingle_s_#1-1773755614984.mp3');
+  AUDIO.hint.src    = encodeURIComponent('Hint_Used_Sound_soft_#1-1773755341876.mp3');
+  AUDIO.music.loop = true;
 
 function playSound(key) {
   try {
@@ -158,13 +168,46 @@ function generatePuzzle(n, diff) {
 // ─── MENU CONTROL ─────────────────────────────────────────────────────────────
 function goToMenu() {
   closeAllModals();
-  clearInterval(G.tmr);
+  // Save current game state if in a game
+  if (MODE === 'classic' || MODE === 'arcade') {
+    savedGameState = JSON.parse(JSON.stringify(G));
+    if (MODE === 'arcade') {
+      savedGameState.arcadeIndex = arcadeIndex;
+      savedGameState.arcadeTotalTime = arcadeTotalTime;
+      savedGameState.arcadeTotalMistakes = arcadeTotalMistakes;
+    }
+    savedMode = MODE;
+    savedTimer = G.tmr;
+    clearInterval(G.tmr);
+  }
   document.getElementById('mainMenu').classList.add('on');
   MODE = 'menu';
   updateModeDisplay();
+  document.getElementById('musicVol').value = musicVolume;
+  document.getElementById('musicVolVal').textContent = Math.round(musicVolume * 100) + '%';
+  AUDIO.music.volume = musicVolume;
+  AUDIO.music.play().catch(() => {});
 }
 
 function startClassic() {
+  // Resume saved classic game if available
+  if (savedMode === 'classic' && savedGameState) {
+    MODE = 'classic';
+    document.getElementById('mainMenu').classList.remove('on');
+    document.getElementById('classicControls').style.display = '';
+    document.getElementById('arcadeControls').style.display = 'none';
+    document.getElementById('arcadeProgressDisplay').style.display = 'none';
+    document.getElementById('newPuzzleBtn').textContent = '→ NEW PUZZLE';
+    updateModeDisplay();
+    Object.assign(G, savedGameState);
+    savedGameState = null;
+    savedMode = null;
+    render();
+    updateStats();
+    G.tmr = setInterval(() => { G.time++; updateStats(); }, 1000);
+    return;
+  }
+  // Start new classic game
   MODE = 'classic';
   document.getElementById('mainMenu').classList.remove('on');
   document.getElementById('classicControls').style.display = '';
@@ -172,10 +215,34 @@ function startClassic() {
   document.getElementById('arcadeProgressDisplay').style.display = 'none';
   document.getElementById('newPuzzleBtn').textContent = '→ NEW PUZZLE';
   updateModeDisplay();
+  AUDIO.music.pause();
+  AUDIO.music.volume = 0;
   newGame();
 }
 
 function startArcade() {
+  // Resume saved arcade game if available
+  if (savedMode === 'arcade' && savedGameState) {
+    MODE = 'arcade';
+    document.getElementById('mainMenu').classList.remove('on');
+    document.getElementById('arcadeCompleteModal').classList.remove('on');
+    document.getElementById('classicControls').style.display = 'none';
+    document.getElementById('arcadeControls').style.display = '';
+    document.getElementById('arcadeProgressDisplay').style.display = 'flex';
+    document.getElementById('newPuzzleBtn').textContent = '→ NEW PUZZLE';
+    updateModeDisplay();
+    Object.assign(G, savedGameState);
+    arcadeIndex = savedGameState.arcadeIndex || arcadeIndex;
+    arcadeTotalTime = savedGameState.arcadeTotalTime || arcadeTotalTime;
+    arcadeTotalMistakes = savedGameState.arcadeTotalMistakes || arcadeTotalMistakes;
+    savedGameState = null;
+    savedMode = null;
+    render();
+    updateStats();
+    G.tmr = setInterval(() => { G.time++; updateStats(); }, 1000);
+    return;
+  }
+  // Start new arcade game
   MODE = 'arcade';
   arcadeIndex = 0;
   arcadeTotalTime = 0;
@@ -187,14 +254,31 @@ function startArcade() {
   document.getElementById('arcadeProgressDisplay').style.display = 'flex';
   document.getElementById('newPuzzleBtn').textContent = '→ NEW PUZZLE';
   updateModeDisplay();
+  AUDIO.music.pause();
+  AUDIO.music.volume = 0;
   loadArcadeLevel();
 }
 
-function openSettings() { document.getElementById('settingsMenu').classList.add('on'); }
-function closeSettings() { document.getElementById('settingsMenu').classList.remove('on'); }
+function openSettings() {
+  document.getElementById('settingsMenu').classList.add('on');
+}
+function closeSettings() {
+  document.getElementById('settingsMenu').classList.remove('on');
+  if (MODE === 'menu') {
+    AUDIO.music.volume = musicVolume;
+    AUDIO.music.play().catch(() => {});
+  }
+}
+
+function openHowToPlay() {
+  document.getElementById('howToPlayMenu').classList.add('on');
+}
+function closeHowToPlay() {
+  document.getElementById('howToPlayMenu').classList.remove('on');
+}
 
 function closeAllModals() {
-  ['winModal', 'loseModal', 'arcadeCompleteModal', 'settingsMenu'].forEach(id =>
+  ['winModal', 'loseModal', 'arcadeCompleteModal', 'settingsMenu', 'howToPlayMenu'].forEach(id =>
     document.getElementById(id).classList.remove('on')
   );
 }
@@ -264,6 +348,8 @@ function newGame() {
 }
 
 function handleNewBtn() {
+  savedGameState = null;
+  savedMode = null;
   if (MODE === 'arcade') loadArcadeLevel();
   else newGame();
 }
@@ -271,6 +357,8 @@ function handleNewBtn() {
 function resetGame() {
   closeAllModals();
   clearInterval(G.tmr);
+  savedGameState = null;
+  savedMode = null;
   G.user     = Array.from({ length: G.size }, () => Array(G.size).fill(-1));
   G.history  = [];
   G.mistakes = 0;
@@ -324,23 +412,55 @@ function render() {
 
 // ─── CLUE FEEDBACK ────────────────────────────────────────────────────────────
 function checkLineFeedback(clues, userLine) {
-  let ci = 0, overflow = false, runLen = 0;
+  let groupIndex = 0;
+  let runLen = 0;
+  let hasKnownCell = false;
+
   for (const v of userLine) {
-    if (v === 1) { runLen++; }
-    else {
+    if (v === 1) {
+      hasKnownCell = true;
+      runLen++;
+      if (groupIndex >= clues.length || runLen > clues[groupIndex]) {
+        return 'error';
+      }
+    } else if (v === 0) {
       if (runLen > 0) {
-        if (ci >= clues.length || runLen > clues[ci]) { overflow = true; break; }
-        if (v === 0) ci++;
+        groupIndex++;
         runLen = 0;
       }
+      hasKnownCell = true;
+      if (groupIndex > clues.length) {
+        return 'error';
+      }
+    } else if (v === -1) {
+  // Unknown cell: may be filled or empty
+  if (runLen > 0) {
+    // We have an active run. Check if it matches the expected group size.
+    if (runLen === clues[groupIndex]) {
+      // Perfect match - treat unknown as a potential gap (end the group)
+      groupIndex++;
+      runLen = 0;
+    } else if (runLen > clues[groupIndex]) {
+      // Run is already too long
+      return 'error';
+    }
+    // else: run is incomplete, unknown might continue it (leave it as is)
+  }
+}
+  }
+
+  if (runLen > 0) {
+    // ending in a live run: ensure it can still match remaining clue
+    if (groupIndex >= clues.length || runLen > clues[groupIndex]) {
+      return 'error';
     }
   }
-  if (runLen > 0 && (ci >= clues.length || runLen > clues[ci])) overflow = true;
-  if (overflow) return 'error';
+
   if (userLine.every(v => v !== -1)) {
     const f = getClues(userLine.map(v => v === 1 ? 1 : 0));
     return JSON.stringify(f) === JSON.stringify(clues) ? 'done' : 'error';
   }
+
   return 'partial';
 }
 
@@ -566,12 +686,16 @@ function checkWin() {
 
 // ─── SIZE / DIFF ──────────────────────────────────────────────────────────────
 function changeSize(s) {
+  savedGameState = null;
+  savedMode = null;
   document.querySelectorAll('.sz-btn').forEach(b => b.classList.toggle('on', +b.dataset.s === s));
   G.size = s;
   newGame();
 }
 
 function changeDiff(d) {
+  savedGameState = null;
+  savedMode = null;
   document.querySelectorAll('.df-btn').forEach(b => b.classList.toggle('on', b.dataset.d === d));
   G.diff = d;
   G.maxMistakes = d === 'easy' ? 5 : d === 'medium' ? 3 : 1;
@@ -590,18 +714,32 @@ function saveScore() {
   lb = lb.slice(0, 20);
   try { localStorage.setItem('ng_lb', JSON.stringify(lb)); } catch (e) {}
   document.getElementById('winModal').classList.remove('on');
+  savedGameState = null;
+  savedMode = null;
   updateLB();
   newGame();
+}
+
+function setLeaderboardFilter(size, diff) {
+  leaderboardFilter.size = size;
+  leaderboardFilter.diff = diff;
+  updateLB();
 }
 
 function updateLB() {
   let lb = [];
   try { lb = JSON.parse(localStorage.getItem('ng_lb') || '[]'); } catch (e) {}
-  document.getElementById('lb').innerHTML = lb.slice(0, 8).map((e, i) =>
+  lb = lb
+    .filter(entry => entry.s == leaderboardFilter.size && entry.d === leaderboardFilter.diff)
+    .sort((a, b) => a.t - b.t)
+    .slice(0, 8);
+
+  document.getElementById('lb').innerHTML = lb.map((e, i) =>
     `<div class="lb-e">
       <span class="lb-r">#${i + 1}</span>
       <span class="lb-n">${e.n}</span>
       <span class="lb-t">${e.s}x${e.s} ${fmt(e.t)}</span>
+      <span class="lb-lv">${e.d.toUpperCase()}</span>
     </div>`
   ).join('') || '<div style="color:var(--muted);text-align:center;font-size:.75rem;padding:8px;">No results yet</div>';
 }
@@ -617,6 +755,8 @@ function saveArcadeScore() {
   lb = lb.slice(0, 20);
   try { localStorage.setItem('ng_arcade_lb', JSON.stringify(lb)); } catch (e) {}
   document.getElementById('arcadeCompleteModal').classList.remove('on');
+  savedGameState = null;
+  savedMode = null;
   updateArcadeLB();
   startArcade();
 }
@@ -639,3 +779,15 @@ function updateArcadeLB() {
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 updateLB();
 updateArcadeLB();
+
+// Initialize volume sliders to match defaults
+AUDIO.music.volume = musicVolume;
+document.getElementById('musicVol').value = musicVolume;
+document.getElementById('musicVolVal').textContent = Math.round(musicVolume * 100) + '%';
+
+document.addEventListener('click', function playMusicOnce() {
+  AUDIO.music.loop = true;
+  AUDIO.music.volume = musicVolume;
+  AUDIO.music.play().catch(() => {});
+  document.removeEventListener('click', playMusicOnce);
+});
